@@ -21,4 +21,10 @@ export BlueLibFIFO :: *;
 import BlueLibXilinxPrimitives :: *;
 export BlueLibXilinxPrimitives :: *;
 
+import TestHelpers :: *;
+export TestHelpers :: *;
+
+import Logging :: *;
+export Logging :: *;
+
 endpackage

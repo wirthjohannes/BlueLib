@@ -8,4 +8,9 @@ ifeq ($(wildcard $(MODULEPATH)/BDPI/),)
 $(warning ./src/BDPI/ folder not found. BlueLib packages requiring C functions may not link successfully.)
 else
 C_FILES += $(wildcard $(MODULEPATH)/BDPI/*.c)
+CPP_FILES += $(wildcard $(MODULEPATH)/BDPI/*.cpp)
+endif
+
+ifneq ($(SEED),)
+EXTRA_FLAGS+=-D "SEED=$(SEED)"
 endif

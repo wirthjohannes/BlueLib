@@ -1,9 +1,10 @@
 package Logging;
 
-import BlueLib :: *;
+import BlueLibTests :: *;
 
 interface Logger;
 	method Action log(LogLevel level, Fmt txt);
+	method Action logS(LogLevel level, String txt);
 endinterface
 
 module mkLogger#(String unit)(Logger);
@@ -12,13 +13,20 @@ module mkLogger#(String unit)(Logger);
 			sendMessage(unit, unit, level, txt);
 		`endif
 	endmethod
+	method Action logS(LogLevel level, String txt);
+		`ifndef NOLOG
+			sendMessage(unit, unit, level, $format(txt));
+		`endif
+	endmethod
 endmodule
 
 typedef enum {
-	ERROR = 0,
-	WARN = 1,
-	INFO = 2,
-	DEBUG = 3
+	ALWAYS = 0,
+	ERROR = 1,
+	WARN = 2,
+	INFO = 3,
+	DEBUG = 4,
+	TRACE = 5
 } LogLevel deriving(Eq,Bits,FShow);
 
 function ActionValue#(Bool) checkLogging(String moduleName, String packageName, LogLevel level);
@@ -32,12 +40,20 @@ function DisplayColors getColor(LogLevel level);
 	if (level == ERROR) return RED;
 	else if (level == WARN) return YELLOW;
 	else if (level == INFO) return GREEN;
+	else if (level == ALWAYS) return GREEN;
+	else if (level == DEBUG) return BLUE;
 	else return NORMAL;
 endfunction
 
 function Action log(LogLevel level, Fmt text);
 	action
 		sendMessage(genModuleName(), genPackageName(), level, text);
+	endaction
+endfunction
+
+function Action logS(LogLevel level, String text);
+	action
+		sendMessage(genModuleName(), genPackageName(), level, $format(text));
 	endaction
 endfunction
 
@@ -61,11 +77,14 @@ endfunction
 
 function ActionValue#(LogLevel) getLogLevel(String unit, LogLevel defaultValue);
 	return actionvalue
+		let trace <- $test$plusargs("LOG_" + unit + "=TRACE");
 		let debug <- $test$plusargs("LOG_" + unit + "=DEBUG");
 		let info <- $test$plusargs("LOG_" + unit + "=INFO");
 		let warn <- $test$plusargs("LOG_" + unit + "=WARN");
 		let error <- $test$plusargs("LOG_" + unit + "=ERROR");
-		if (debug)
+		if (trace)
+			return TRACE;
+		else if (debug)
 			return DEBUG;
 		else if (info)
 			return INFO;
@@ -81,10 +100,13 @@ endfunction
 
 function ActionValue#(LogLevel) getLogLevelDefault();
 	return actionvalue
+		let trace <- $test$plusargs("LOG_GLOBAL=TRACE");
 		let debug <- $test$plusargs("LOG_GLOBAL=DEBUG");
 		let info <- $test$plusargs("LOG_GLOBAL=INFO");
 		let warn <- $test$plusargs("LOG_GLOBAL=WARN");
-		if (debug)
+		if (trace)
+			return TRACE;
+		else if (debug)
 			return DEBUG;
 		else if (info)
 			return INFO;
