@@ -12,8 +12,9 @@ When this presents an alternative based on "Logger Modules" is available. For De
 
 The package `Logging` has to be imported where logging should be used.
 Afterwards just call this method: `function Action log(LogLevel level, Fmt text)`.
+Alternatively, you can also use `function Action logS(LogLevel level, String text)` for convenience, if you want to print a static string.
 
-`LogLevel` is one of `ERROR`,`WARN`,`INFO`,`DEBUG`.
+`LogLevel` is one of `ERROR`,`WARN`,`INFO`,`DEBUG`,`TRACE`,`ALWAYS`.
 `Fmt` is the standard type from the Bluespec library, created e.g. by `$format`.
 
 Example:
@@ -48,6 +49,9 @@ This is recommended when building for hardware, as otherwise the output of the S
 
 With this alternative approach it is possible to explicitly specify the string being used to determine whether a log message should be displayed (the "log unit").
 This is specified by instantiating a module `mkLogger(String)` which provides a single method `log(LogLevel,Fmt)` (the method has the same parameters as the `log` function detailed above).
+It also provides a convience method `logS(LogLevel,String)` to print only a static string.
+
+**Important**: The "name" string provided at module instantiation must *NOT* contain whitespaces.
 
 Example:
 ```
