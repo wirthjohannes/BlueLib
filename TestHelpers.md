@@ -55,7 +55,7 @@ interface Randomizer#(type a);
 endinterface
 ```
 
-All modules expecte a `String` as first parameter. This is used as the name for messages via [Logging](Logging.md).
+All modules expect a `String` as first parameter. This is used as the name for messages via [Logging](Logging.md).
 
 **Important**: As in the Logging library, this string must *NOT* contain whitespaces.
 
