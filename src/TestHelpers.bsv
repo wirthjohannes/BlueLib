@@ -4,6 +4,7 @@ import Logging :: *;
 import FIFOF :: *;
 import SpecialFIFOs :: *;
 import GetPut :: *;
+import FixedPoint :: *;
 
 import "BDPI" function ActionValue#(Bit#(64)) random_init(String name);
 import "BDPI" function ActionValue#(Bit#(64)) random_init_seed(String name, Bit#(32) seed);
@@ -86,15 +87,26 @@ endinterface
 
 module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard#(a)) provisos (Bits#(a, __a),Eq#(a),FShow#(a));
     Logger logger <- mkLogger(scoreboardName);
-    FIFOF#(a) ref_fifo <- mkSizedBypassFIFOF(fifoDepth);
-    FIFOF#(a) dut_fifo <- mkSizedBypassFIFOF(fifoDepth);
+    FIFOF#(Tuple2#(a, UInt#(64))) ref_fifo <- mkSizedBypassFIFOF(fifoDepth);
+    FIFOF#(Tuple2#(a, UInt#(64))) dut_fifo <- mkSizedBypassFIFOF(fifoDepth);
     Reg#(UInt#(64)) transaction_counter <- mkReg(0);
     Reg#(Bool) warned_fifo_full <- mkReg(False);
+    Reg#(UInt#(64)) cycle_count <- mkReg(0);
+
+    Reg#(UInt#(64)) latency_max <- mkReg(0);
+    Reg#(UInt#(64)) latency_min <- mkReg(maxBound);
+    Reg#(FixedPoint#(65,2)) latency_avg <- mkReg(0);
+
+    rule count;
+        cycle_count <= cycle_count + 1;
+    endrule
 
     (* fire_when_enabled *)
     rule check;
-        let dut = dut_fifo.first; dut_fifo.deq();
-        let reference = ref_fifo.first; ref_fifo.deq();
+        match {.dut,.dut_cycle} = dut_fifo.first; dut_fifo.deq();
+        match {.reference,.ref_cycle} = ref_fifo.first; ref_fifo.deq();
+
+        let latency = abs(dut_cycle - ref_cycle);
 
         if (dut != reference) begin
             logger.log(ERROR, $format("Mismatch at transaction %d", transaction_counter));
@@ -102,9 +114,13 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
             logger.log(ERROR, $format("DUT:\t\t", fshow(dut)));
             $finish();
         end
-        logger.log(TRACE, $format("Successfully compared transaction #%d with reference", transaction_counter));
+        logger.log(TRACE, $format("Successfully compared transaction #%d with reference (latency: %d)", transaction_counter, latency));
 
         transaction_counter <= transaction_counter + 1;
+
+        latency_max <= max(latency_max, latency);
+        latency_min <= min(latency_min, latency);
+        latency_avg <= (fromUInt(transaction_counter) * latency_avg + fromUInt(latency)) / fromUInt(transaction_counter + 1);
     endrule
 
     rule check_full if ((!ref_fifo.notFull || !dut_fifo.notFull) && !warned_fifo_full);
@@ -112,8 +128,16 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
         warned_fifo_full <= True;
     endrule
 
-    interface reference = toPut(ref_fifo);
-    interface dut = toPut(dut_fifo);
+    interface Put reference;
+        method Action put(a val);
+            ref_fifo.enq(tuple2(val, cycle_count));
+        endmethod
+    endinterface
+    interface Put dut;
+        method Action put(a val);
+            dut_fifo.enq(tuple2(val, cycle_count));
+        endmethod
+    endinterface
     method Action checkFinished() if (!ref_fifo.notEmpty || !dut_fifo.notEmpty);
         if (ref_fifo.notEmpty) begin
             logger.log(ERROR, $format("remaining reference values, but no DUT values!"));
@@ -122,6 +146,7 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
             logger.log(ERROR, $format("remaining DUT values, but no reference values!"));
         end
         logger.log(ALWAYS, $format("Successfully compared %d transactions, no mismatches", transaction_counter));
+        if (transaction_counter > 0) logger.log(ALWAYS, $format("Latency min %d max %d avg %d.%d", latency_min, latency_max, fxptGetInt(latency_avg), fxptGetFrac(latency_avg)));
     endmethod
 
     method UInt#(64) matchedCount();
