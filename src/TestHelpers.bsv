@@ -95,7 +95,7 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
 
     Reg#(UInt#(64)) latency_max <- mkReg(0);
     Reg#(UInt#(64)) latency_min <- mkReg(maxBound);
-    Reg#(FixedPoint#(65,2)) latency_avg <- mkReg(0);
+    Reg#(UInt#(64)) latency_avg <- mkReg(0);
 
     rule count;
         cycle_count <= cycle_count + 1;
@@ -120,7 +120,8 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
 
         latency_max <= max(latency_max, latency);
         latency_min <= min(latency_min, latency);
-        latency_avg <= (fromUInt(transaction_counter) * latency_avg + fromUInt(latency)) / fromUInt(transaction_counter + 1);
+        FixedPoint#(65,32) t = fromUInt(transaction_counter + 1);
+        latency_avg <= (transaction_counter * latency_avg + latency * 100000) / (transaction_counter + 1);
     endrule
 
     rule check_full if ((!ref_fifo.notFull || !dut_fifo.notFull) && !warned_fifo_full);
@@ -146,7 +147,7 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
             logger.log(ERROR, $format("remaining DUT values, but no reference values!"));
         end
         logger.log(ALWAYS, $format("Successfully compared %d transactions, no mismatches", transaction_counter));
-        if (transaction_counter > 0) logger.log(ALWAYS, $format("Latency min %d max %d avg %d.%d", latency_min, latency_max, fxptGetInt(latency_avg), fxptGetFrac(latency_avg)));
+        if (transaction_counter > 0) logger.log(ALWAYS, $format("Latency min %d max %d avg %d.%2d", latency_min, latency_max, latency_avg / 100000, (latency_avg / 1000) % 100));
     endmethod
 
     method UInt#(64) matchedCount();
