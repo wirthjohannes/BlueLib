@@ -147,7 +147,7 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
             logger.log(ERROR, $format("remaining DUT values, but no reference values!"));
         end
         logger.log(ALWAYS, $format("Successfully compared %d transactions, no mismatches", transaction_counter));
-        if (transaction_counter > 0) logger.log(ALWAYS, $format("Latency min %d max %d avg %d.%2d", latency_min, latency_max, latency_avg / 100000, (latency_avg / 1000) % 100));
+        if (transaction_counter > 0) logger.log(ALWAYS, $format("Latency min %d max %d avg %d.%1d", latency_min, latency_max, latency_avg / 100000, (latency_avg / 10000) % 10));
     endmethod
 
     method UInt#(64) matchedCount();
