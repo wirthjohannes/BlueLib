@@ -90,3 +90,12 @@ Example: `make SEED=1234`
 At the start of simulation, the used base-seed (before combination with the module names) is printed out. If you want to repeat a specific run, just copy this seed and use it in the make command like above.
 
 **Important**: This reproducibility might break, if you use a single randomizer module in different places.
+
+### Limitations
+
+The module `mkStructRandomizer` does not consider when not all possible values are actually allowed values.
+This affects enums, but likely also tagged unions (the part which decides which is active). Both directly, but also indirectly when nested in e.g. a struct.
+
+Example: An enum with 5 cases is encoded as 3 bits, but the values 5,6,7 do not represent valid enum values. The randomizer will still generate these values, which might lead to unexpected and hard to debug errors or behavior.
+
+Currently the user needs to manually edit the randomized values to ensure only allowed values are actually used. It would be nice to have an automated way to ensure this but I'm not sure that is possible.
