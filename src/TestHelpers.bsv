@@ -5,6 +5,7 @@ import FIFOF :: *;
 import SpecialFIFOs :: *;
 import GetPut :: *;
 import FixedPoint :: *;
+import FIFO :: *;
 
 import "BDPI" function ActionValue#(Bit#(64)) random_init(String name);
 import "BDPI" function ActionValue#(Bit#(64)) random_init_seed(String name, Bit#(32) seed);
@@ -153,6 +154,29 @@ module mkScoreboardInorder#(String scoreboardName, Integer fifoDepth)(Scoreboard
     method UInt#(64) matchedCount();
         return transaction_counter;
     endmethod
+endmodule
+
+interface ForwardRandomizer#(type element_type);
+    interface Put#(element_type) in;
+    interface Get#(element_type) out;
+endinterface
+
+module mkForwardRandomizer#(String name, UInt#(7) ready_percent)(ForwardRandomizer#(element_type)) provisos (Bits#(element_type, a__));
+    let fifo_in <- mkBypassFIFO;
+    let fifo_out <- mkBypassFIFO;
+
+    Randomizer#(UInt#(7)) random <- mkConstrainedRandomizer(name, 0, 100);
+
+    rule forward;
+        let r <- random.next();
+        if (r > ready_percent) begin
+            fifo_out.enq(fifo_in.first());
+            fifo_in.deq();
+        end
+    endrule
+
+    interface in = toPut(fifo_in);
+    interface out = toGet(fifo_out);
 endmodule
 
 endpackage
