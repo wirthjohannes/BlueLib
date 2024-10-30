@@ -18,14 +18,34 @@ interface Randomizer#(type a);
     method Action destroy();
 endinterface
 
-module mkGenericRandomizer#(String name)(Randomizer#(a)) provisos (Bits#(a, sa),Bounded#(a));
+module mkGenericRandomizer#(String name)(Randomizer#(a)) provisos (Bits#(a,sa),Bounded#(a));
+    `ifdef SEED
+        let seed = tagged Valid `SEED;
+    `else
+        let seed = tagged Invalid;
+    `endif
+    (*hide*) let _a <- mkGenericRandomizerSeed(seed, name);
+    return _a;
+endmodule
+
+module mkGenericRandomizerSeed#(Maybe#(Bit#(32)) seed, String name)(Randomizer#(a)) provisos (Bits#(a, sa),Bounded#(a));
     a min = minBound;
     a max = maxBound;
-    let _m <- mkConstrainedRandomizer(name, min, max);
+    let _m <- mkConstrainedRandomizerSeed(seed, name, min, max);
     return _m;
 endmodule
 
 module mkConstrainedRandomizer#(String name, a minV, a maxV)(Randomizer#(a)) provisos (Bits#(a,sa));
+    `ifdef SEED
+        let seed = tagged Valid `SEED;
+    `else
+        let seed = tagged Invalid;
+    `endif
+    (*hide*) let _a <- mkConstrainedRandomizerSeed(seed, name, minV, maxV);
+    return _a;
+endmodule
+
+module mkConstrainedRandomizerSeed#(Maybe#(Bit#(32)) seed, String name, a minV, a maxV)(Randomizer#(a)) provisos (Bits#(a,sa));
     Logger logger <- mkLogger(name);
     Reg#(Bit#(64)) ptr <- mkRegU;
     Reg#(Bool) initialized <- mkReg(False);
@@ -35,11 +55,11 @@ module mkConstrainedRandomizer#(String name, a minV, a maxV)(Randomizer#(a)) pro
     method Action init();
         if (!initialized) begin
             initialized <= True;
-            `ifdef SEED
-                let p <- random_init_seed(name, `SEED);
-            `else
-                let p <- random_init(name);
-            `endif
+            Bit#(64) p;
+            case (seed) matches
+                tagged Valid .seed: p <- random_init_seed(name, seed);
+                tagged Invalid: p <- random_init(name);
+            endcase
             ptr <= p;
         end
     endmethod
