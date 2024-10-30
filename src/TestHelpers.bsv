@@ -6,6 +6,7 @@ import SpecialFIFOs :: *;
 import GetPut :: *;
 import FixedPoint :: *;
 import FIFO :: *;
+import SafeRandom :: *;
 
 import "BDPI" function ActionValue#(Bit#(64)) random_init(String name);
 import "BDPI" function ActionValue#(Bit#(64)) random_init_seed(String name, Bit#(32) seed);
@@ -88,24 +89,24 @@ module mkConstrainedRandomizerSeed#(Maybe#(Bit#(32)) seed, String name, a minV, 
     endmethod
 endmodule
 
-module mkStructRandomizer#(String name)(Randomizer#(a)) provisos (Bits#(a,s));
+module mkStructRandomizer#(String name)(Randomizer#(a)) provisos (Bits#(a,s),SafeRandom#(a));
     Randomizer#(Bit#(s)) random <- mkGenericRandomizer(name);
 
     method init = random.init;
     method ActionValue#(a) next();
         let v <- random.next();
-        return unpack(v);
+        return safe(unpack(v));
     endmethod
     method destroy = random.destroy;
 endmodule
 
-module mkStructRandomizerSeed#(Maybe#(Bit#(32)) seed, String name)(Randomizer#(a)) provisos (Bits#(a,s));
+module mkStructRandomizerSeed#(Maybe#(Bit#(32)) seed, String name)(Randomizer#(a)) provisos (Bits#(a,s),SafeRandom#(a));
     Randomizer#(Bit#(s)) random <- mkGenericRandomizerSeed(seed, name);
 
     method init = random.init;
     method ActionValue#(a) next();
         let v <- random.next();
-        return unpack(v);
+        return safe(unpack(v));
     endmethod
     method destroy = random.destroy;
 endmodule

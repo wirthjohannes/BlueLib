@@ -1,0 +1,42 @@
+package SafeRandom where
+
+import Vector
+
+class SafeRandom a where
+    safe     :: a -> a
+
+-- Explicit instances for primitive types
+instance SafeRandom (Bit n) where
+    safe = id
+
+-- Generic default instance
+instance (Generic a r, SafeRandom' r) => SafeRandom a where
+    safe   x  = to $ safe' $ from x
+
+class SafeRandom' r where
+    safe'   :: r -> r
+
+-- Instance for sum types
+instance (SafeRandom' r1, SafeRandom' r2) =>
+      SafeRandom' (Either r1 r2) where
+    safe' (Left x) = (Left (safe' x))
+    safe' (Right x) = (Right (safe' x))
+
+-- Instance for product types
+instance (SafeRandom' r1, SafeRandom' r2) =>
+      SafeRandom' (r1, r2) where
+    safe' (x, y) = (safe' x, safe' y)
+
+instance  SafeRandom' () where
+    safe' () = ()
+
+instance (SafeRandom' a) => SafeRandom' (Vector n a) where
+    safe' = map safe'
+
+-- Ignore all types of metadata
+instance (SafeRandom' r) => SafeRandom' (Meta m r) where
+    safe' (Meta x) = Meta $ safe' x
+
+-- Conc instance calls back to the non-generic MyBits class
+instance (SafeRandom a) => SafeRandom' (Conc a) where
+    safe' (Conc x) = Conc $ safe x
