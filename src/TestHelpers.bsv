@@ -99,6 +99,17 @@ module mkStructRandomizer#(String name)(Randomizer#(a)) provisos (Bits#(a,s));
     method destroy = random.destroy;
 endmodule
 
+module mkStructRandomizerSeed#(Maybe#(Bit#(32)) seed, String name)(Randomizer#(a)) provisos (Bits#(a,s));
+    Randomizer#(Bit#(s)) random <- mkGenericRandomizerSeed(seed, name);
+
+    method init = random.init;
+    method ActionValue#(a) next();
+        let v <- random.next();
+        return unpack(v);
+    endmethod
+    method destroy = random.destroy;
+endmodule
+
 interface Scoreboard#(type a);
     interface Put#(a) reference;
     interface Put#(a) dut;
