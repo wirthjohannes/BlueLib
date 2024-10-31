@@ -14,3 +14,7 @@ endif
 ifneq ($(SEED),)
 EXTRA_FLAGS+=-D "SEED=$(SEED)"
 endif
+
+ifneq ($(NOCOLOR),)
+EXTRA_FLAGS+=-D "NOCOLOR=1"
+endif

@@ -15,15 +15,19 @@ typedef enum {
 
 function Action printColor(DisplayColors color, Fmt text);
     action
-        Fmt colorFmt = ?;
-        case(color)
-            BLUE: colorFmt = $format("%c[34m",27);
-            RED: colorFmt = $format("%c[31m",27);
-            YELLOW: colorFmt = $format("%c[33m",27);
-            GREEN: colorFmt = $format("%c[32m",27);
-            NORMAL: colorFmt = $format("");
-        endcase
-        $display(colorFmt + text + $format("%c[0m",27));
+        `ifndef NOCOLOR
+            Fmt colorFmt = ?;
+            case(color)
+                BLUE: colorFmt = $format("%c[34m",27);
+                RED: colorFmt = $format("%c[31m",27);
+                YELLOW: colorFmt = $format("%c[33m",27);
+                GREEN: colorFmt = $format("%c[32m",27);
+                NORMAL: colorFmt = $format("");
+            endcase
+            $display(colorFmt + text + $format("%c[0m",27));
+        `else
+            $display(text);
+        `endif
     endaction
 endfunction
 
