@@ -7,6 +7,7 @@ import GetPut :: *;
 import FixedPoint :: *;
 import FIFO :: *;
 import SafeRandom :: *;
+import Connectable :: *;
 
 import "BDPI" function ActionValue#(Bit#(64)) random_init(String name);
 import "BDPI" function ActionValue#(Bit#(64)) random_init_seed(String name, Bit#(32) seed);
@@ -197,18 +198,33 @@ module mkForwardRandomizer#(String name, UInt#(7) ready_percent)(ForwardRandomiz
     let fifo_in <- mkBypassFIFO;
     let fifo_out <- mkBypassFIFO;
 
-    Randomizer#(UInt#(7)) random <- mkConstrainedRandomizer(name, 0, 100);
+    Randomizer#(UInt#(7)) random <- mkConstrainedRandomizer(name, 0, 99);
 
     rule forward;
         let r <- random.next();
-        if (r > ready_percent) begin
+        if (r < ready_percent) begin
             fifo_out.enq(fifo_in.first());
             fifo_in.deq();
         end
     endrule
 
+    Reg#(Bool) initialized <- mkReg(False);
+
+    rule init if (!initialized);
+        initialized <= True;
+        random.init();
+    endrule
+
     interface in = toPut(fifo_in);
     interface out = toGet(fifo_out);
+endmodule
+
+module mkConnectionDelayed#(Get#(a) get, Put#(a) put, String name, UInt#(7) ready_percent)(Empty) provisos (Bits#(a, a__));
+
+    ForwardRandomizer#(a) forward <- mkForwardRandomizer(name, ready_percent);
+
+    mkConnection(get, forward.in);
+    mkConnection(forward.out, put);
 endmodule
 
 endpackage
