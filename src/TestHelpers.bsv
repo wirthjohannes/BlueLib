@@ -8,6 +8,7 @@ import FixedPoint :: *;
 import FIFO :: *;
 import SafeRandom :: *;
 import Connectable :: *;
+import ClientServer :: *;
 
 import "BDPI" function ActionValue#(Bit#(64)) random_init(String name);
 import "BDPI" function ActionValue#(Bit#(64)) random_init_seed(String name, Bit#(32) seed);
@@ -220,11 +221,15 @@ module mkForwardRandomizer#(String name, UInt#(7) ready_percent)(ForwardRandomiz
 endmodule
 
 module mkConnectionDelayed#(Get#(a) get, Put#(a) put, String name, UInt#(7) ready_percent)(Empty) provisos (Bits#(a, a__));
-
     ForwardRandomizer#(a) forward <- mkForwardRandomizer(name, ready_percent);
 
     mkConnection(get, forward.in);
     mkConnection(forward.out, put);
+endmodule
+
+module mkConnectionDelayedCS#(Client#(a,b) c, Server#(a,b) s, String name, UInt#(7) ready_percent)(Empty) provisos (Bits#(a, a__),Bits#(b, b__));
+    mkConnectionDelayed(c.request, s.request, name + "_req", ready_percent);
+    mkConnectionDelayed(s.response, c.response, name + "_resp", ready_percent);
 endmodule
 
 endpackage
