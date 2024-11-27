@@ -89,6 +89,8 @@ Example: `make SEED=1234`
 
 At the start of simulation, the used base-seed (before combination with the module names) is printed out. If you want to repeat a specific run, just copy this seed and use it in the make command like above.
 
+Alternatively there are also `*Seed` variants for alle Randomizer modules. These receive a `Maybe#(Bit#(32)) seed` module parameter to explictly specify the seed (instead of the `make` argument). As above if this seed is provided (`tagged Valid`), it is combined with the `String name` module parameter. If it is empty (`tagged Invalid`), a seed based on the current time is used.
+
 **Important**: This reproducibility might break, if you use a single randomizer module in different places.
 
 ### Limitations
